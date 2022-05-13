@@ -98,7 +98,6 @@ class MovieView(Resource):
         where = join2.filter(Movie.id == id).one()
         return movie_schema.dump(where), 200
 
-
 @movies_ns.route('/director_id/<int:director_id>')  # ДОДЕЛАТЬ 404 ? не понятно
 class MovieView(Resource):
     def get(self, director_id):
