@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
@@ -78,9 +78,30 @@ genre_ns = api.namespace('genre')  # *
 @movies_ns.route('/')  # --- пока не ясно как сделать "паддинг"
 class MovieView(Resource):
     def get(self):
-        # all_movies = db.session.query(Movie).all()
-        all_movies = db.session.query(Movie.title).all()
-        return movies_schema.dump(all_movies), 200
+        genre_id = request.args.get('genre_id')
+        director_id = request.args.get('director_id')
+
+        if genre_id and genre_id != '':
+            movies = db.session.query(Movie.title).filter(Movie.genre_id == genre_id).order_by(Movie.year).all()
+            if not movies:
+                return f"movie genre_id={genre_id} не найдено", 404
+            return movies_schema.dump(movies), 200
+
+        if director_id and director_id != '':
+            director_id = request.args.get('director_id')
+            movies = db.session.query(Movie.title).filter(Movie.director_id == director_id).order_by(Movie.year).all()
+            if not movies:
+                return f"movie director_id={director_id} не найдено", 404
+            return movies_schema.dump(movies), 200
+
+        else:
+            all_movies = db.session.query(Movie.title).all()
+            return movies_schema.dump(all_movies), 200
+
+
+
+
+
 
 @movies_ns.route('/<int:id>')
 class MovieView(Resource):
@@ -98,24 +119,26 @@ class MovieView(Resource):
         where = join2.filter(Movie.id == id).one()
         return movie_schema.dump(where), 200
 
-@movies_ns.route('/director_id/<int:director_id>')  # ДОДЕЛАТЬ 404 ? не понятно
-class MovieView(Resource):
-    def get(self, director_id):
-        movies = Movie.query.filter(Movie.director_id.like(director_id))
-        if not movies:
-            return f"movie director_id={director_id} не найдено", 404
-        movies = db.session.query(Movie.title).filter(Movie.director_id.like(director_id)).order_by(Movie.year).all()
-        return movies_schema.dump(movies), 200
-
-
-@movies_ns.route('/genre_id/<int:genre_id>')   # ДОДЕЛАТЬ 404 ? не понятно
-class MovieView(Resource):
-    def get(self, genre_id):
-        movies = Movie.query.filter(Movie.genre_id.like(genre_id))
-        if not movies:
-            return f"movie genre_id={genre_id} не найдено", 404
-        movies = db.session.query(Movie.title).filter(Movie.genre_id.like(genre_id)).order_by(Movie.year).all()
-        return movies_schema.dump(movies), 200
+# @movies_ns.route('/director_id/<int:director_id>')  # ДОДЕЛАТЬ 404 ? не понятно
+# @movies_ns.route('/director_id/)
+# class MovieView(Resource):
+#     def get(self, director_id):
+#         movies = Movie.query.filter(Movie.director_id == director_id)
+#         if not movies:
+#             return f"movie director_id={director_id} не найдено", 404
+#         movies = db.session.query(Movie.title).filter(Movie.director_id == director_id).order_by(Movie.year).all()
+#         return movies_schema.dump(movies), 200
+#
+#
+# # @movies_ns.route('/genre_id/<int:genre_id>')   # ДОДЕЛАТЬ 404 ? не понятно
+# @movies_ns.route('/genre_id/<int:genre_id>')
+# class MovieView(Resource):
+#     def get(self, genre_id):
+#         movies = Movie.query.filter(Movie.genre_id == genre_id)
+#         if not movies:
+#             return f"movie genre_id={genre_id} не найдено", 404
+#         movies = db.session.query(Movie.title).filter(Movie.genre_id == genre_id).order_by(Movie.year).all()
+#         return movies_schema.dump(movies), 200
 
 
 # ===========================*====================================
