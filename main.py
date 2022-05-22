@@ -75,26 +75,35 @@ genre_ns = api.namespace('genre')  # *
 
 
 # прописываем эндпоинты
-@movies_ns.route('/')  # --- пока не ясно как сделать "паддинг"
+@movies_ns.route('/')
 class MovieView(Resource):
     def get(self):
         genre_id = request.args.get('genre_id')
         director_id = request.args.get('director_id')
 
-        if genre_id and genre_id != '':
-            movies = db.session.query(Movie.title).filter(Movie.genre_id == genre_id).order_by(Movie.year).all()
+        if genre_id and genre_id != '' and director_id and director_id != '':   # Доработайте представление так, чтобы оно возвращало только фильмы с определенным режиссером и жанром по запросу типа /movies/?director_id=2&genre_id=4.
+            director_id = request.args.get('director_id')
+            movies = db.session.query(Movie.title).filter(Movie.director_id == director_id and Movie.genre_id == genre_id).all()
             if not movies:
-                return f"movie genre_id={genre_id} не найдено", 404
+                return f"movie director_id={director_id} and genre_id={genre_id} not found", 404
             return movies_schema.dump(movies), 200
 
-        if director_id and director_id != '':
+        if genre_id and genre_id != '':   # Доработайте представление так, чтобы оно возвращало только фильмы определенного жанра  по запросу типа /movies/?genre_id=1.
+            movies = db.session.query(Movie.title).filter(Movie.genre_id == genre_id).order_by(Movie.year).all()
+            if not movies:
+                return f"movie genre_id={genre_id} not found", 404
+            return movies_schema.dump(movies), 200
+
+        if director_id and director_id != '':   # Доработайте представление так, чтобы оно возвращало только фильмы с определенным режиссером по запросу типа `/movies/?director_id=1`.
             director_id = request.args.get('director_id')
             movies = db.session.query(Movie.title).filter(Movie.director_id == director_id).order_by(Movie.year).all()
             if not movies:
-                return f"movie director_id={director_id} не найдено", 404
+                return f"movie director_id={director_id} not found", 404
             return movies_schema.dump(movies), 200
 
-        else:
+
+
+        else:   # /movies — возвращает список всех фильмов,
             all_movies = db.session.query(Movie.title).all()
             return movies_schema.dump(all_movies), 200
 
@@ -102,8 +111,7 @@ class MovieView(Resource):
 
 
 
-
-@movies_ns.route('/<int:id>')
+@movies_ns.route('/<int:id>')   # /movies/<id> — возвращает подробную информацию о фильме.
 class MovieView(Resource):
     def get(self, id):
         movie = Movie.query.get(id)
@@ -119,57 +127,57 @@ class MovieView(Resource):
         where = join2.filter(Movie.id == id).one()
         return movie_schema.dump(where), 200
 
-# @movies_ns.route('/director_id/<int:director_id>')  # ДОДЕЛАТЬ 404 ? не понятно
-# @movies_ns.route('/director_id/)
-# class MovieView(Resource):
-#     def get(self, director_id):
-#         movies = Movie.query.filter(Movie.director_id == director_id)
-#         if not movies:
-#             return f"movie director_id={director_id} не найдено", 404
-#         movies = db.session.query(Movie.title).filter(Movie.director_id == director_id).order_by(Movie.year).all()
-#         return movies_schema.dump(movies), 200
-#
-#
-# # @movies_ns.route('/genre_id/<int:genre_id>')   # ДОДЕЛАТЬ 404 ? не понятно
-# @movies_ns.route('/genre_id/<int:genre_id>')
-# class MovieView(Resource):
-#     def get(self, genre_id):
-#         movies = Movie.query.filter(Movie.genre_id == genre_id)
-#         if not movies:
-#             return f"movie genre_id={genre_id} не найдено", 404
-#         movies = db.session.query(Movie.title).filter(Movie.genre_id == genre_id).order_by(Movie.year).all()
-#         return movies_schema.dump(movies), 200
 
 
 # ===========================*====================================
-@movies_ns.route('/<int:director_id>,<int:genre_id>')
-class MovieView(Resource):
-    def get(self, genre_id):
-        pass
 
 
-@director_ns.route('/<int:id>')
+@director_ns.route('/<int:id>')   #  Добавьте реализацию методов POST/PUT/DELETE для режиссера.
 class DirectorSchema(Resource):
-    def post(self, id):
-        pass
+    def post(self):  # добавление
+        data = request.json()
+        new_director = Director(**data)
+        with db.session.begin():
+            db.session.add(new_director)
+        return "", 201
 
-    def put(self, id):
-        pass
+    def put(self, id):  # замена
+        data = request.json()
+        director = Director.query.get(id)
+        director.director_name = data['director_name']
+        with db.session.begin():
+            db.session.add(director)
+        return "", 204
 
-    def delete(self, id):
-        pass
+    def delete(self, id:int):  # удаление
+        director = db.session.query(Director).get(id)
+        with db.session.begin():
+            db.session.delete(director)
+        return "", 204
 
 
-@genre_ns.route('/<int:id>')
+@genre_ns.route('/<int:id>')   #  Добавьте реализацию методов POST/PUT/DELETE для жанра.
 class GenreSchema(Resource):
-    def post(self, id):
-        pass
+    def post(self):   # добавление
+        data = request.json()
+        new_genre = Genre(**data)
+        with db.session.begin():
+            db.session.add(new_genre)
+        return "", 201
 
-    def put(self, id):
-        pass
+    def put(self, id):   # замена
+        data = request.json()
+        genre = Genre.query.get(id)
+        genre.genre_name = data['genre_name']
+        with db.session.begin():
+            db.session.add(genre)
+        return "", 204
 
-    def delete(self, id):
-        pass
+    def delete(self, id:int):   # удаление
+        genre = db.session.query(Genre).get(id)
+        with db.session.begin():
+            db.session.delete(genre)
+        return "", 204
 
 
 # ===========================*====================================
