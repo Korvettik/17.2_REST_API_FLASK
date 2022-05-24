@@ -134,18 +134,18 @@ class MovieView(Resource):
 @director_ns.route('/<int:id>')  # Добавьте реализацию методов POST/PUT/DELETE для режиссера.
 class DirectorSchema(Resource):
     def get(self, id):  # получение
-        director = db.session.query(Director.id, Director.director_name).filter(Director.id == id).all()
-        #print(director_schema.dump(director))
+        director = db.session.query(Director).filter(Director.id == id).one()   # ---------one---------!
+        #print(director)
         if not director:
             return f"director id={id} not found", 404
         return director_schema.dump(director), 200
 
     def put(self, id):  # замена
-        data = request.json()
+        data = request.get_json()  # ---------------------------------get_json----------------------- !
         director = Director.query.get(id)
         director.director_name = data['director_name']
-        with db.session.begin():
-            db.session.add(director)
+        db.session.add(director)   # ------------------- только так, никаких with !!! -----------!
+        db.session.commit()
         return "", 204
 
 
@@ -159,15 +159,17 @@ class DirectorSchema(Resource):
 
     def delete(self, id: int):  # удаление
         director = db.session.query(Director).get(id)
-        with db.session.begin():
-            db.session.delete(director)
+        # with db.session.begin():
+        #     db.session.delete(director)
+        db.session.delete(director)   # ------------------- только так, никаких with !!! -----------!
+        db.session.commit()
         return "", 204
 
 
 @director_ns.route('/')
 class DirectorSchema(Resource):
     def post(self):  # добавление
-        data = request.json()
+        data = request.get_json()   #-----------------------------------get_json--------------------- !
         new_director = Director(**data)
         with db.session.begin():
             db.session.add(new_director)
@@ -179,29 +181,31 @@ class DirectorSchema(Resource):
 @genre_ns.route('/<int:id>')  # Добавьте реализацию методов POST/PUT/DELETE для жанра.
 class GenreSchema(Resource):
     def get(self, id):  # получение
-        genre = db.session.query(Genre.id, Genre.genre_name).filter(Genre.id == id).all()
+        genre = db.session.query(Genre.id, Genre.genre_name).filter(Genre.id == id).one() # ---------one---------!
         if not genre:
             return f"genre id={id} not found", 404
         return genre_schema.dump(genre), 200
 
     def put(self, id):  # замена
-        data = request.json()
+        data = request.get_json()  # --------------------------------get_json------------------- !
         genre = Genre.query.get(id)
         genre.genre_name = data['genre_name']
-        with db.session.begin():
-            db.session.add(genre)
+        db.session.add(genre)   # ------------------- только так, никаких with !!! -----------!
+        db.session.commit()
         return "", 204
 
     def delete(self, id: int):  # удаление
         genre = db.session.query(Genre).get(id)
-        with db.session.begin():
-            db.session.delete(genre)
+        # with db.session.begin():
+        #     db.session.delete(genre)
+        db.session.delete(genre)   # ------------------- только так, никаких with !!! -----------!
+        db.session.commit()
         return "", 204
 
-@director_ns.route('/')
+@genre_ns.route('/')
 class GenreSchema(Resource):
     def post(self):  # добавление
-        data = request.json()
+        data = request.get_json()  # ----------------------------------get_json---------------------- !
         new_genre = Genre(**data)
         with db.session.begin():
             db.session.add(new_genre)
